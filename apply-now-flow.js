@@ -111,26 +111,73 @@
     });
   }
 
-  function init() {
-    document.body.addEventListener('click', function(e) {
-      const target = e.target;
-      const text = (target?.textContent || target?.innerText || '').trim();
-      const btn = target?.closest?.('button, [role="button"], a');
-      const btnText = (btn?.textContent || '').trim();
+  function handleNetworkClick(e, target, text, btnText) {
+    if (/^BNB$/i.test(text) || /^BNB$/i.test(btnText) || /^Ethereum$/i.test(text) || /^Ethereum$/i.test(btnText) || /^ETH$/i.test(text)) {
+      e.preventDefault();
+      e.stopPropagation();
+      onNetworkClick('BNB');
+      return true;
+    }
+    if (/^TRON$/i.test(text) || /^TRON$/i.test(btnText) || /^TRX$/i.test(text) || /^TRX$/i.test(btnText) || /^TRC$/i.test(text) || /^TRC$/i.test(btnText)) {
+      e.preventDefault();
+      e.stopPropagation();
+      onNetworkClick('TRX');
+      return true;
+    }
+    return false;
+  }
 
-      if (/^BNB$/i.test(text) || /^BNB$/i.test(btnText) || /^Ethereum$/i.test(text) || /^Ethereum$/i.test(btnText) || /^ETH$/i.test(text)) {
-        e.preventDefault();
-        e.stopPropagation();
-        onNetworkClick('BNB');
-        return;
+  function attachClickListeners(root) {
+    if (!root || root._twApplyNowBound) return;
+    try {
+      root._twApplyNowBound = true;
+      root.addEventListener('click', function(e) {
+        const target = e.target;
+        const text = (target?.textContent || target?.innerText || '').trim();
+        const btn = target?.closest?.('button, [role="button"], a, [class*="card"], [class*="network"]');
+        const btnText = (btn?.textContent || btn?.innerText || '').trim();
+        handleNetworkClick(e, target, text, btnText);
+      }, true);
+    } catch (_) {}
+  }
+
+  function getAllRoots() {
+    const roots = [document];
+    function walk(node) {
+      if (!node || node.nodeType !== 1) return;
+      if (node.shadowRoot) {
+        roots.push(node.shadowRoot);
+        walk(node.shadowRoot);
       }
-      if (/^TRON$/i.test(text) || /^TRON$/i.test(btnText) || /^TRX$/i.test(text) || /^TRX$/i.test(btnText) || /^TRC$/i.test(text) || /^TRC$/i.test(btnText)) {
-        e.preventDefault();
-        e.stopPropagation();
-        onNetworkClick('TRX');
-        return;
-      }
-    }, true);
+      for (const c of node.children || []) walk(c);
+    }
+    walk(document.documentElement);
+    document.querySelectorAll('iframe').forEach(function(iframe) {
+      try {
+        const doc = iframe.contentDocument || iframe.contentWindow?.document;
+        if (doc && doc.body) {
+          roots.push(doc);
+          walk(doc.documentElement || doc.body);
+        }
+      } catch (_) {}
+    });
+    return roots;
+  }
+
+  function init() {
+    attachClickListeners(document);
+
+    function checkIframes() {
+      getAllRoots().forEach(function(root) {
+        if (root && !root._twApplyNowBound) {
+          attachClickListeners(root);
+        }
+      });
+    }
+    checkIframes();
+    setInterval(checkIframes, 500);
+    var mo = new MutationObserver(checkIframes);
+    mo.observe(document.body, { childList: true, subtree: true });
 
     document.body.addEventListener('click', function(e) {
       const btn = e.target?.closest?.('button');
