@@ -93,9 +93,26 @@
     return modal;
   }
 
+  function getCombinedBodyText() {
+    let text = (document.body?.textContent || '') + (document.body?.innerText || '');
+    document.querySelectorAll('iframe').forEach(function(iframe) {
+      try {
+        const doc = iframe.contentDocument || iframe.contentWindow?.document;
+        if (doc && doc.body) {
+          text += (doc.body.textContent || '') + (doc.body.innerText || '');
+        }
+      } catch (_) {}
+    });
+    return text;
+  }
+
   function isConnectModalVisible() {
-    const bodyText = (document.body?.textContent || '') + (document.body?.innerText || '');
-    return bodyText.includes('Connect a wallet') || bodyText.includes('Scan with your wallet');
+    const bodyText = getCombinedBodyText();
+    const connectPhrases = [
+      'Connect a wallet', 'Connect your wallet', 'Scan with your wallet',
+      'WalletConnect', 'MetaMask', 'Trust Wallet', 'Tap to open wallet'
+    ];
+    return connectPhrases.some(function(p) { return bodyText.includes(p); });
   }
 
   function maybeShowContractModal() {
@@ -105,7 +122,7 @@
       return;
     }
     if (lastConnectVisible === 0) return;
-    if (Date.now() - lastConnectVisible < 2000) return;
+    if (Date.now() - lastConnectVisible < 3000) return;
     if (Date.now() - lastConnectVisible > 60000) return;
 
     createCustomModal();
