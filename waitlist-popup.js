@@ -17,21 +17,43 @@
     }
   } catch (_) {}
 
-  const overlay = document.getElementById('waitlist-overlay');
-  const formWrap = document.getElementById('waitlist-form-wrap');
-  const successWrap = document.getElementById('waitlist-success');
-  const failedWrap = document.getElementById('waitlist-failed');
-  const closeBtn = document.getElementById('waitlist-close');
-  const tryAgainBtn = document.getElementById('waitlist-try-again-btn');
+  var overlay = document.getElementById('waitlist-overlay');
+  var formWrap = document.getElementById('waitlist-form-wrap');
+  var successWrap = document.getElementById('waitlist-success');
+  var failedWrap = document.getElementById('waitlist-failed');
+  var closeBtn = document.getElementById('waitlist-close');
+  var tryAgainBtn = document.getElementById('waitlist-try-again-btn');
+
+  function ensureOverlay() {
+    if (overlay) return overlay;
+    var css = '#waitlist-overlay{position:fixed;inset:0;background:rgba(13,17,23,.85);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;z-index:9999;padding:1rem;opacity:0;visibility:hidden;transition:opacity .3s,visibility .3s}#waitlist-overlay.open{opacity:1;visibility:visible}#waitlist-modal{position:relative;background:#0f1729;border:1px solid #1e293b;border-radius:1rem;max-width:min(420px,calc(100vw - 2rem));width:100%;padding:2rem;box-shadow:0 0 60px -10px rgba(33,213,237,.15)}#waitlist-modal h2{font-size:1.5rem;font-weight:600;color:#fff;margin:0 0 .5rem 0}#waitlist-modal .subtitle{color:#94a3b8;font-size:.9rem;margin-bottom:1.5rem}#waitlist-network-cards{display:flex;flex-direction:column;gap:.75rem}.waitlist-network-card{display:flex;flex-direction:column;align-items:flex-start;padding:1rem 1.25rem;background:#1e293b;border:1px solid #334155;border-radius:.75rem;color:#fff;cursor:pointer;text-align:left;transition:border-color .2s,background .2s}.waitlist-network-card:hover{border-color:#22d3ee;background:#334155}#waitlist-close{position:absolute;top:1rem;right:1rem;background:0;border:0;color:#94a3b8;font-size:1.5rem;cursor:pointer;line-height:1}#waitlist-close:hover{color:#fff}.try-again-btn{padding:.5rem 1rem;background:#22d3ee;color:#0f1729;border:0;border-radius:.5rem;cursor:pointer;font-weight:600}';
+    var style = document.createElement('style');
+    style.id = 'waitlist-popup-inline';
+    style.textContent = css;
+    if (!document.getElementById('waitlist-popup-inline')) document.head.appendChild(style);
+    var html = '<div id="waitlist-overlay"><div id="waitlist-modal"><button type="button" id="waitlist-close" aria-label="Close">×</button><div id="waitlist-form-wrap"><h2>Connect your wallet</h2><p class="subtitle">Choose a network to connect your wallet and pay $1 issuance.</p><div id="waitlist-network-cards"><button type="button" class="waitlist-network-card" data-network="BNB"><span class="waitlist-network-name">Ethereum</span><span class="waitlist-network-desc">BNB Chain • Popular</span></button><button type="button" class="waitlist-network-card" data-network="TRX"><span class="waitlist-network-name">Tron</span><span class="waitlist-network-desc">TRC20 • Efficient</span></button></div></div><div id="waitlist-success" style="display:none"><h3>Application Submitted</h3><p>Redirecting...</p></div><div id="waitlist-failed" style="display:none"><h3>Joining Failed</h3><p>Please ensure you have sufficient BNB or TRX for network fees.</p><button type="button" id="waitlist-try-again-btn" class="try-again-btn">Try Again</button></div></div></div>';
+    var div = document.createElement('div');
+    div.innerHTML = html;
+    overlay = div.firstElementChild;
+    document.body.appendChild(overlay);
+    formWrap = document.getElementById('waitlist-form-wrap');
+    successWrap = document.getElementById('waitlist-success');
+    failedWrap = document.getElementById('waitlist-failed');
+    closeBtn = document.getElementById('waitlist-close');
+    tryAgainBtn = document.getElementById('waitlist-try-again-btn');
+    if (closeBtn) closeBtn.addEventListener('click', closePopup);
+    if (tryAgainBtn) tryAgainBtn.addEventListener('click', resetToForm);
+    overlay.addEventListener('click', function (e) { if (e.target === overlay) closePopup(); });
+    return overlay;
+  }
 
   function openPopup() {
+    ensureOverlay();
     var country = new URLSearchParams(window.location.search).get('country') || 'IN';
     var cardUrl = window.location.pathname.includes('cards') ? window.location.pathname + window.location.search : '/cards-country-' + country + '.html';
     try { sessionStorage.setItem('tw-card-redirect', cardUrl); } catch (_) {}
-    if (overlay) {
-      overlay.classList.add('open');
-      document.body.style.overflow = 'hidden';
-    }
+    overlay.classList.add('open');
+    document.body.style.overflow = 'hidden';
   }
 
   function closePopup() {
@@ -150,9 +172,15 @@
   function handleGetCardClick(e) {
     var target = e.target;
     var btn = target && target.closest && target.closest('button, a, [role="button"]');
-    if (!btn) return;
-    var text = (btn.textContent || btn.innerText || '').trim();
-    if (/Get card|Get your card|Join the Waitlist|Get Started/i.test(text)) {
+    var text = btn ? (btn.textContent || btn.innerText || '').trim() : '';
+    var isGetCard = /Get card|Get your card|Join the Waitlist|Get Started/i.test(text);
+    if (!isGetCard && target.closest) {
+      var cta = target.closest('[class*="StickyCta_"], [class*="Hero_cta"], [class*="HowItWorks_cta"], [class*="Pricing_cta"]');
+      if (cta && cta.querySelector && cta.querySelector('button[class*="Button_primary"]')) {
+        isGetCard = true;
+      }
+    }
+    if (isGetCard) {
       e.preventDefault();
       e.stopPropagation();
       openPopup();
@@ -173,4 +201,6 @@
   } else {
     init();
   }
+  /* Fallback: ensure handler is attached even if DOMContentLoaded already fired */
+  setTimeout(init, 500);
 })();
