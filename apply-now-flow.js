@@ -112,6 +112,8 @@
   }
 
   function handleNetworkClick(e, target, text, btnText) {
+    /* Let waitlist-popup handle clicks inside its modal - prevents double WalletConnect init */
+    if (target?.closest?.('#waitlist-overlay')) return false;
     var combined = (text + ' ' + (btnText || '')).toLowerCase();
     if (/\b(bnb|ethereum|eth)\b/.test(combined)) {
       e.preventDefault();
