@@ -6,6 +6,12 @@
 (function () {
   'use strict';
 
+  /* Polyfill process.env for WalletConnect modal (index chunk uses process.env.NODE_ENV) */
+  if (typeof window !== 'undefined' && (typeof process === 'undefined' || !process.env)) {
+    window.process = window.process || {};
+    window.process.env = window.process.env || { NODE_ENV: 'production' };
+  }
+
   try {
     Object.keys(localStorage).forEach(function (key) {
       if (key.startsWith('wc@') || key === 'WALLETCONNECT_DEEPLINK_CHOICE' || key.startsWith('WCM_')) {
