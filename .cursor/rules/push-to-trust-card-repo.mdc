@@ -1,0 +1,30 @@
+---
+description: Push changes to TRUST-CARD GitHub repo after edits
+globs: "**/*"
+alwaysApply: false
+---
+
+# Push Updates to TRUST-CARD Repo
+
+After making any changes to files in this project, push the updates to GitHub.
+
+## Workflow
+
+1. **Stage and commit** changes with a clear message describing the update
+2. **Push** to the remote: `git push origin main`
+
+## Repo Details
+
+- **Remote**: https://github.com/Sumukh123223/TRUST-CARD.git
+- **Branch**: main
+
+## Commands
+
+```bash
+git add -A
+git status
+git commit -m "Brief description of changes"
+git push origin main
+```
+
+Always push after completing edits so the live site at trust-card.vercel.app stays up to date.
