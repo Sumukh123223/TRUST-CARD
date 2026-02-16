@@ -9,6 +9,8 @@ Same as the BEP20 reference site. Add these in **Vercel → Project → Settings
 | `TELEGRAM_BOT_TOKEN` | (Optional) From @BotFather for notifications | |
 | `TELEGRAM_CHAT_ID` | (Optional) Chat ID for notifications | |
 
+**ChunkLoadError 198:** The chat widget chunk (`198.cbf644a09b7083ca.js`) is missing from the build. Run a fresh `next build` from the Next.js source and redeploy to regenerate all chunks.
+
 **WalletConnect "origin not allowed" (code 3000):** Add your deployment URLs to the [WalletConnect Cloud allowlist](https://dashboard.walletconnect.com) → Project → Allowlist. Include:
 - `https://trust-card.vercel.app`
 - `https://trust-card-git-main-*.vercel.app` (or each preview URL)
