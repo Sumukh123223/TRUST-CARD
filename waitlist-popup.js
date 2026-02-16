@@ -255,7 +255,8 @@
   /* Direct click on Apply Now - redirect to standalone connect page (no Next.js = no WalletConnect conflict) */
   document.addEventListener('click', function (e) {
     var btn = e.target && e.target.closest && e.target.closest('#waitlist-apply-btn');
-    if (!btn || !overlay || !overlay.classList.contains('open')) return;
+    var overlayEl = document.getElementById('waitlist-overlay');
+    if (!btn || !overlayEl || !overlayEl.classList.contains('open')) return;
     e.preventDefault();
     e.stopPropagation();
     var form = document.getElementById('waitlist-form');
