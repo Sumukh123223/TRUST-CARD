@@ -1,24 +1,18 @@
 /**
- * Direct Wallet Connect - When user selects Ethereum, auto-connect MetaMask (skip wallet grid)
+ * Direct WalletConnect - When user selects Ethereum, show WalletConnect modal (QR + desktop wallets)
  * 
- * Flow: User clicks Ethereum → MetaMask popup opens directly (wallet grid is auto-skipped)
+ * Flow: User clicks Ethereum → WalletConnect modal opens (QR code, Binance, SafePal, etc.)
  */
 (function() {
   'use strict';
 
   let lastEthereumClick = 0;
 
-  function tryDirectMetaMaskConnect() {
-    if (typeof window.ethereum === 'undefined') return false;
-    window.ethereum.request({ method: 'eth_requestAccounts' }).catch(() => {});
-    return true;
-  }
-
-  function findAndClickMetaMask() {
-    const all = document.querySelectorAll('button, [role="button"], [class*="connector"], [class*="wallet"]');
+  function findAndClickWalletConnect() {
+    const all = document.querySelectorAll('button, [role="button"], [class*="connector"], [class*="wallet"], a');
     for (const el of all) {
       const text = (el.textContent || '').trim();
-      if (/metamask/i.test(text) && text.length < 50) {
+      if (/walletconnect/i.test(text) && text.length < 80) {
         el.click();
         return true;
       }
@@ -26,17 +20,15 @@
     return false;
   }
 
-  // When wallet grid modal appears after Ethereum was selected, auto-click MetaMask
+  // When wallet grid modal appears after Ethereum was selected, auto-click WalletConnect
   const observer = new MutationObserver(() => {
     if (Date.now() - lastEthereumClick > 3000) return; // Only within 3s of Ethereum click
     const bodyText = document.body.textContent || '';
-    if (!bodyText.includes('Connect a wallet') || !bodyText.includes('MetaMask')) return;
+    if (!bodyText.includes('Connect a wallet') || !bodyText.includes('WalletConnect')) return;
     if (!bodyText.includes('Please select a wallet')) return;
-    // Wallet grid is showing - auto-click MetaMask
+    // Wallet grid is showing - auto-click WalletConnect to show QR + desktop options
     setTimeout(() => {
-      if (findAndClickMetaMask()) return;
-      // MetaMask not found in grid - try direct connect
-      tryDirectMetaMaskConnect();
+      findAndClickWalletConnect();
     }, 150);
   });
 
