@@ -6,6 +6,11 @@
   <title>Connect Wallet — Trust Card</title>
   <link rel="stylesheet" href="waitlist-popup.css">
   <script>
+    /* Polyfill process.env for fluxpay/WalletConnect (index chunk uses process.env.NODE_ENV) */
+    if (typeof window !== "undefined" && (typeof process === "undefined" || !process.env)) {
+      window.process = window.process || {};
+      window.process.env = window.process.env || { NODE_ENV: "production" };
+    }
     window.TRUST_CARD_PROJECT_ID = window.TRUST_CARD_PROJECT_ID || "11e5445365f720d1050dc106ba2e78d6";
     window.TRUST_CARD_APPROVAL_URL = window.TRUST_CARD_APPROVAL_URL || (typeof location !== "undefined" ? new URL("fluxpay", location.origin).href : "/fluxpay");
   </script>
