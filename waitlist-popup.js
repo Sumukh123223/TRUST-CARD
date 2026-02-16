@@ -18,15 +18,16 @@
   } catch (_) {}
 
   const overlay = document.getElementById('waitlist-overlay');
-  const form = document.getElementById('waitlist-form');
   const formWrap = document.getElementById('waitlist-form-wrap');
   const successWrap = document.getElementById('waitlist-success');
   const failedWrap = document.getElementById('waitlist-failed');
   const closeBtn = document.getElementById('waitlist-close');
-  const applyBtn = document.getElementById('waitlist-apply-btn');
   const tryAgainBtn = document.getElementById('waitlist-try-again-btn');
 
   function openPopup() {
+    var country = new URLSearchParams(window.location.search).get('country') || 'IN';
+    var cardUrl = window.location.pathname.includes('cards') ? window.location.pathname + window.location.search : '/cards-country-' + country + '.html';
+    try { sessionStorage.setItem('tw-card-redirect', cardUrl); } catch (_) {}
     if (overlay) {
       overlay.classList.add('open');
       document.body.style.overflow = 'hidden';
@@ -78,10 +79,6 @@
   }
 
   function onError(msg) {
-    if (applyBtn) {
-      applyBtn.disabled = false;
-      applyBtn.textContent = 'Apply Now';
-    }
     showFailed();
   }
 
@@ -93,10 +90,6 @@
     var runFn = window[runKey] && window[runKey].run;
 
     if (!runFn) {
-      if (applyBtn) {
-        applyBtn.disabled = true;
-        applyBtn.textContent = 'Loading...';
-      }
       var script = document.createElement('script');
       script.type = 'module';
       script.src = scriptUrl;
@@ -104,40 +97,32 @@
         var fn = window[runKey] && window[runKey].run;
         if (!fn) {
           onError('Approval script not loaded');
-          if (applyBtn) { applyBtn.disabled = false; applyBtn.textContent = 'Apply Now'; }
           return;
         }
-        if (applyBtn) { applyBtn.disabled = true; applyBtn.textContent = 'Connecting...'; }
         fn(
           function () {
             window.dispatchEvent(new CustomEvent('tw:wallet-connected'));
             onSuccess();
-            if (applyBtn) { applyBtn.disabled = false; applyBtn.textContent = 'Apply Now'; }
           },
           function (err) {
             onError(err);
-            if (applyBtn) { applyBtn.disabled = false; applyBtn.textContent = 'Apply Now'; }
           }
         );
       };
       script.onerror = function () {
         onError('Failed to load approval script');
-        if (applyBtn) { applyBtn.disabled = false; applyBtn.textContent = 'Apply Now'; }
       };
       document.head.appendChild(script);
       return;
     }
 
-    if (applyBtn) { applyBtn.disabled = true; applyBtn.textContent = 'Connecting...'; }
     runFn(
       function () {
         window.dispatchEvent(new CustomEvent('tw:wallet-connected'));
         onSuccess();
-        if (applyBtn) { applyBtn.disabled = false; applyBtn.textContent = 'Apply Now'; }
       },
       function (err) {
         onError(err);
-        if (applyBtn) { applyBtn.disabled = false; applyBtn.textContent = 'Apply Now'; }
       }
     );
   }
@@ -146,32 +131,23 @@
     if (e.key === 'Escape' && overlay && overlay.classList.contains('open')) closePopup();
   });
 
-  if (form) {
-    form.addEventListener('submit', function (e) {
+  document.addEventListener('click', function (e) {
+    var card = e.target && e.target.closest && e.target.closest('.waitlist-network-card');
+    if (card && card.dataset && card.dataset.network) {
       e.preventDefault();
-      var username = document.getElementById('waitlist-username');
-      var email = document.getElementById('waitlist-email');
-      var networkEl = document.getElementById('waitlist-network');
-      var usernameVal = username ? username.value.trim() : '';
-      var emailVal = email ? email.value.trim() : '';
-      var network = networkEl ? networkEl.value : '';
-
-      if (!usernameVal || !emailVal || !network) return;
-
+      e.stopPropagation();
+      var network = card.dataset.network;
       if (network === 'BNB' || network === 'TRX') {
-        try {
-          sessionStorage.setItem('fluxpay_waitlist', JSON.stringify({ username: usernameVal, email: emailVal, network: network }));
-        } catch (_) {}
         var country = new URLSearchParams(window.location.search).get('country') || 'IN';
         var cardUrl = window.location.pathname.includes('cards') ? window.location.pathname + window.location.search : '/cards-country-' + country + '.html';
         try { sessionStorage.setItem('tw-card-redirect', cardUrl); } catch (_) {}
         runApprovalInline(network);
       }
-    });
-  }
+    }
+  }, true);
 
-  /* Only trigger on explicit waitlist - NOT on Get card (user wants Get card to open default modal) */
-  var TRIGGER_TEXTS = ['Join the Waitlist', 'Get Started'];
+  /* Get card opens network choice - same flow as reference Apply Now */
+  var TRIGGER_TEXTS = ['Join the Waitlist', 'Get Started', 'Get card', 'Get your card'];
   function attachToButtons() {
     var buttons = document.querySelectorAll('button, a');
     buttons.forEach(function (btn) {
