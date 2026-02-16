@@ -176,6 +176,19 @@ wcm-modal > *, [data-wcm-modal] > *, [class*="wcm-modal"] {
   color: #fff;
   background: hsl(222, 30%, 18%);
 }
+#waitlist-connecting {
+  text-align: center;
+  padding: 1.5rem 0;
+}
+#waitlist-connecting h3 {
+  font-size: 1.25rem;
+  color: #fff;
+  margin-bottom: 0.5rem;
+}
+#waitlist-connecting p {
+  color: hsl(215, 20%, 55%);
+  font-size: 0.9rem;
+}
 #waitlist-success, #waitlist-failed {
   text-align: center;
   padding: 1rem 0;
