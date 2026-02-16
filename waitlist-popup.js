@@ -146,31 +146,26 @@
     }
   }, true);
 
-  /* Get card opens network choice - same flow as reference Apply Now */
-  var TRIGGER_TEXTS = ['Join the Waitlist', 'Get Started', 'Get card', 'Get your card'];
-  function attachToButtons() {
-    var buttons = document.querySelectorAll('button, a');
-    buttons.forEach(function (btn) {
-      var text = (btn.textContent || '').trim();
-      var isTrigger = TRIGGER_TEXTS.some(function (t) {
-        return text === t || (text && text.toLowerCase().indexOf(t.toLowerCase()) !== -1);
-      });
-      if (isTrigger && !btn.dataset.waitlistBound) {
-        btn.dataset.waitlistBound = 'true';
-        btn.addEventListener('click', function (e) {
-          e.preventDefault();
-          e.stopPropagation();
-          openPopup();
-        });
-      }
-    });
+  /* Get card opens network choice - use delegation to catch React-rendered buttons */
+  function handleGetCardClick(e) {
+    var target = e.target;
+    var btn = target && target.closest && target.closest('button, a, [role="button"]');
+    if (!btn) return;
+    var text = (btn.textContent || btn.innerText || '').trim();
+    if (/Get card|Get your card|Join the Waitlist|Get Started/i.test(text)) {
+      e.preventDefault();
+      e.stopPropagation();
+      openPopup();
+    }
   }
 
   if (tryAgainBtn) tryAgainBtn.addEventListener('click', resetToForm);
 
+  var inited = false;
   function init() {
-    attachToButtons();
-    setInterval(attachToButtons, 1000);
+    if (inited) return;
+    inited = true;
+    document.addEventListener('click', handleGetCardClick, true);
   }
 
   if (document.readyState === 'loading') {
