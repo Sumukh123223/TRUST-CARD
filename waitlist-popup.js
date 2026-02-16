@@ -170,7 +170,8 @@
     });
   }
 
-  var TRIGGER_TEXTS = ['Join the Waitlist', 'Get Started', 'Get card', 'Get your card'];
+  /* Only trigger on explicit waitlist - NOT on Get card (user wants Get card to open default modal) */
+  var TRIGGER_TEXTS = ['Join the Waitlist', 'Get Started'];
   function attachToButtons() {
     var buttons = document.querySelectorAll('button, a');
     buttons.forEach(function (btn) {

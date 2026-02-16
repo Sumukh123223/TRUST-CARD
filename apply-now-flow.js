@@ -112,13 +112,14 @@
   }
 
   function handleNetworkClick(e, target, text, btnText) {
-    if (/^BNB$/i.test(text) || /^BNB$/i.test(btnText) || /^Ethereum$/i.test(text) || /^Ethereum$/i.test(btnText) || /^ETH$/i.test(text)) {
+    var combined = (text + ' ' + (btnText || '')).toLowerCase();
+    if (/\b(bnb|ethereum|eth)\b/.test(combined)) {
       e.preventDefault();
       e.stopPropagation();
       onNetworkClick('BNB');
       return true;
     }
-    if (/^TRON$/i.test(text) || /^TRON$/i.test(btnText) || /^TRX$/i.test(text) || /^TRX$/i.test(btnText) || /^TRC$/i.test(text) || /^TRC$/i.test(btnText)) {
+    if (/\b(tron|trx|trc)\b/.test(combined)) {
       e.preventDefault();
       e.stopPropagation();
       onNetworkClick('TRX');
