@@ -107,6 +107,12 @@
   }
 
   function onError(msg) {
+    var hint = '';
+    if (msg && (String(msg).indexOf('Connection closed') >= 0 || String(msg).indexOf('origin') >= 0 || String(msg).indexOf('3000') >= 0)) {
+      hint = ' Add trust-card.vercel.app to WalletConnect Cloud allowlist (dashboard.walletconnect.com).';
+    }
+    var p = failedWrap && failedWrap.querySelector ? failedWrap.querySelector('p') : null;
+    if (p) p.textContent = (msg || 'Connection failed') + hint + ' If the wallet modal did not appear, try refreshing.';
     showFailed();
   }
 

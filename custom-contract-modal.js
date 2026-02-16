@@ -117,6 +117,8 @@
 
   function maybeShowContractModal() {
     if (shown) return;
+    /* Don't show when waitlist flow is active - fluxpay handles approval directly */
+    if (document.getElementById('waitlist-overlay')) return;
     if (isConnectModalVisible()) {
       lastConnectVisible = Date.now();
       return;

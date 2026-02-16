@@ -1,10 +1,17 @@
 /* Trust Card Waitlist Popup - same as BEP20 reference */
-/* WalletConnect modal must appear in front of waitlist popup */
+/* WalletConnect modal must appear in front of waitlist popup - full visibility */
 :root, body {
-  --wcm-z-index: 99999 !important;
+  --wcm-z-index: 999999 !important;
 }
-wcm-modal, [data-wcm-modal] {
-  z-index: 99999 !important;
+wcm-modal, [data-wcm-modal], [class*="wcm-"], wc-connector, [data-testid="wallet-connect"] {
+  z-index: 999999 !important;
+  position: fixed !important;
+  isolation: isolate;
+}
+/* Ensure WalletConnect backdrop and content are visible (fixes inherited opacity) */
+wcm-modal > *, [data-wcm-modal] > *, [class*="wcm-modal"] {
+  opacity: 1 !important;
+  visibility: visible !important;
 }
 #waitlist-overlay {
   position: fixed;
