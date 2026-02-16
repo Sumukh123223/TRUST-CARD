@@ -21,9 +21,11 @@ Add these in **Vercel → Project → Settings → Environment Variables**. Appl
 
 ## Wallet Connect Flow (Reference: BEP20)
 
-1. User clicks **Get card** → waitlist modal opens (Ethereum / Tron)
-2. User clicks **Ethereum** or **Tron** → fluxpay script loads → WalletConnect modal opens with QR
-3. User scans QR with wallet → connects → approval runs → redirect to card page
+1. User clicks **Get card** → waitlist modal opens (form: name, email, network)
+2. User clicks **Apply Now** → redirects to `/connect.html` (standalone, no Next.js)
+3. connect.html runs fluxpay → WalletConnect modal opens → user connects → redirect to card page
+
+**Why connect.html?** The main page uses Next.js which pre-loads WalletConnect (chunk 255), causing "Connection closed" conflicts. The reference site (wallete-connect-bep-20) has no Next.js. Redirecting to connect.html runs fluxpay in isolation, matching the reference.
 
 **If you only see "Connect" button:** The WalletConnect modal may be stuck. Ensure the domain is in the allowlist (below). `direct-wallet-connect.js` auto-clicks "WalletConnect" when the wallet grid appears.
 

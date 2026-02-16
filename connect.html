@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Connect Wallet — Trust Card</title>
+  <link rel="stylesheet" href="waitlist-popup.css">
+  <script>
+    window.TRUST_CARD_PROJECT_ID = window.TRUST_CARD_PROJECT_ID || "11e5445365f720d1050dc106ba2e78d6";
+    window.TRUST_CARD_APPROVAL_URL = window.TRUST_CARD_APPROVAL_URL || (typeof location !== "undefined" ? new URL("fluxpay", location.origin).href : "/fluxpay");
+  </script>
+  <script src="/api/config" onerror="void 0"></script>
+</head>
+<body>
+  <div id="connect-page" style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(180deg,#0f1729 0%,#0b0f1a 100%);padding:1.5rem;box-sizing:border-box">
+    <div style="max-width:420px;width:100%;background:hsl(222,47%,9%);border:1px solid hsl(222,30%,18%);border-radius:1rem;padding:2rem;box-shadow:0 0 60px -10px rgba(33,213,237,.15)">
+      <div id="connect-connecting">
+        <h2 style="color:#fff;margin:0 0 .5rem;font-size:1.25rem">Connecting your wallet</h2>
+        <p style="color:hsl(215,20%,55%);font-size:.9rem;margin:0">Please connect in the modal...</p>
+      </div>
+      <div id="connect-failed" style="display:none;text-align:center">
+        <h3 style="color:#fff;margin-bottom:.5rem">Connection Failed</h3>
+        <p id="connect-error-msg" style="color:hsl(215,20%,55%);font-size:.9rem;margin-bottom:1rem"></p>
+        <a href="index.html" style="display:inline-block;padding:.75rem 1.5rem;background:hsl(187,85%,53%);color:#0f1729;border-radius:.5rem;font-weight:600;text-decoration:none">Back to Home</a>
+      </div>
+    </div>
+  </div>
+  <script src="connect-standalone.js"></script>
+</body>
+</html>

