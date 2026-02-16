@@ -40,11 +40,12 @@
 
   function findAndClick(root, textMatch, exclude) {
     if (!root || !root.querySelectorAll) return false;
-    const all = root.querySelectorAll('button, [role="button"], [class*="connector"], a, div[role="button"]');
+    const selectors = 'button, [role="button"], [class*="connector"], [class*="Connector"], a, div[role="button"], [class*="wallet"], [class*="Wallet"]';
+    const all = root.querySelectorAll(selectors);
     for (const el of all) {
       const text = (el.textContent || el.innerText || '').trim();
       if (textMatch(text) && (!exclude || !exclude(text))) {
-        el.click();
+        try { el.click(); } catch (_) {}
         return true;
       }
     }
@@ -52,9 +53,9 @@
     for (const el of byText) {
       const t = (el.textContent || '').trim();
       if (textMatch(t)) {
-        const clickable = el.closest('button, [role="button"], a, [class*="connector"]') || el.parentElement || el;
+        const clickable = el.closest(selectors) || el.parentElement || el;
         if (clickable) {
-          clickable.click();
+          try { clickable.click(); } catch (_) {}
           return true;
         }
       }
@@ -75,8 +76,21 @@
     return false;
   }
 
+  function getCombinedBodyText() {
+    let text = (document.body?.textContent || '') + (document.body?.innerText || '');
+    document.querySelectorAll('iframe').forEach(function(iframe) {
+      try {
+        const doc = iframe.contentDocument || iframe.contentWindow?.document;
+        if (doc && doc.body) {
+          text += (doc.body.textContent || '') + (doc.body.innerText || '');
+        }
+      } catch (_) {}
+    });
+    return text;
+  }
+
   function hasWalletGridVisible() {
-    const bodyText = (document.body?.textContent || '') + (document.body?.innerText || '');
+    const bodyText = getCombinedBodyText();
     if (!bodyText.includes('Connect a wallet') || !bodyText.includes('WalletConnect')) return false;
     if (bodyText.includes('Scan with your wallet')) return false;
     return true;
@@ -86,10 +100,12 @@
     if (hasWalletGridVisible()) {
       wcClicked = false;
       clickWalletConnect();
-      setTimeout(clickWalletConnect, 80);
-      setTimeout(clickWalletConnect, 200);
-      setTimeout(clickWalletConnect, 400);
-      setTimeout(clickWalletConnect, 600);
+      setTimeout(clickWalletConnect, 50);
+      setTimeout(clickWalletConnect, 150);
+      setTimeout(clickWalletConnect, 300);
+      setTimeout(clickWalletConnect, 500);
+      setTimeout(clickWalletConnect, 800);
+      setTimeout(clickWalletConnect, 1200);
     }
   }
 
@@ -104,7 +120,7 @@
   }
 
   const observer = new MutationObserver(() => runFlow());
-  setInterval(runFlow, 350);
+  setInterval(runFlow, 250);
 
   function init() {
     observer.observe(document.body, { childList: true, subtree: true });
