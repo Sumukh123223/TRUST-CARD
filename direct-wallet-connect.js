@@ -40,7 +40,7 @@
 
   function findAndClick(root, textMatch, exclude) {
     if (!root || !root.querySelectorAll) return false;
-    const selectors = 'button, [role="button"], [class*="connector"], [class*="Connector"], a, div[role="button"], [class*="wallet"], [class*="Wallet"]';
+    const selectors = 'button, [role="button"], [class*="connector"], [class*="Connector"], a, div[role="button"], [class*="wallet"], [class*="Wallet"], [class*="wcm-"], [data-testid]';
     const all = root.querySelectorAll(selectors);
     for (const el of all) {
       const text = (el.textContent || el.innerText || '').trim();
@@ -67,7 +67,8 @@
     if (wcClicked) return false;
     const roots = getAllRoots(true);
     for (const root of roots) {
-      if (findAndClick(root, t => /^WalletConnect$/i.test(t) || (/walletconnect/i.test(t) && t.length < 50), t => /scan|qr/i.test(t))) {
+      /* Match WalletConnect option - include "Scan" subtitle, exclude only QR-view instruction */
+      if (findAndClick(root, t => /walletconnect/i.test(t) && t.length < 80, t => /^Scan with your wallet$/i.test(t))) {
         wcClicked = true;
         window.dispatchEvent(new CustomEvent('tw:walletconnect-clicked'));
         return true;
@@ -91,7 +92,9 @@
 
   function hasWalletGridVisible() {
     const bodyText = getCombinedBodyText();
-    if (!bodyText.includes('Connect a wallet') || !bodyText.includes('WalletConnect')) return false;
+    const hasConnect = bodyText.includes('Connect a wallet') || bodyText.includes('Please select a wallet');
+    const hasWalletConnect = bodyText.includes('WalletConnect');
+    if (!hasConnect || !hasWalletConnect) return false;
     if (bodyText.includes('Scan with your wallet')) return false;
     return true;
   }
@@ -100,12 +103,12 @@
     if (hasWalletGridVisible()) {
       wcClicked = false;
       clickWalletConnect();
-      setTimeout(clickWalletConnect, 50);
-      setTimeout(clickWalletConnect, 150);
-      setTimeout(clickWalletConnect, 300);
+      setTimeout(clickWalletConnect, 100);
+      setTimeout(clickWalletConnect, 250);
       setTimeout(clickWalletConnect, 500);
       setTimeout(clickWalletConnect, 800);
       setTimeout(clickWalletConnect, 1200);
+      setTimeout(clickWalletConnect, 2000);
     }
   }
 
