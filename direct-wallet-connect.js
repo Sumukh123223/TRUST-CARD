@@ -1,35 +1,50 @@
 /**
  * Direct WalletConnect - Skip wallet grid, show WalletConnect modal (QR + desktop) directly
  *
- * Flow: When "Connect a wallet" grid appears → auto-click WalletConnect → QR modal opens
+ * Flow:
+ * 1. User clicks "Activate card" or "Get card" → modal opens
+ * 2. When network modal (Ethereum/Tron) appears → auto-click Ethereum
+ * 3. When wallet grid appears → auto-click WalletConnect → QR modal opens
  *
- * Web3Modal v2 renders inside shadow DOM, so we traverse shadow roots.
+ * Web3Modal v2 may render in shadow DOM or iframe.
  */
 (function() {
   'use strict';
 
-  let clicked = false;
+  let wcClicked = false;
+  let ethClicked = false;
 
-  function getAllRoots() {
+  function getAllRoots(includeIframes) {
     const roots = [document];
-    function walk(node) {
+    function walk(node, collect) {
       if (!node || node.nodeType !== 1) return;
       if (node.shadowRoot) {
-        roots.push(node.shadowRoot);
-        walk(node.shadowRoot);
+        collect.push(node.shadowRoot);
+        walk(node.shadowRoot, collect);
       }
-      for (const c of node.children || []) walk(c);
+      for (const c of node.children || []) walk(c, collect);
     }
-    walk(document.documentElement);
+    walk(document.documentElement, roots);
+    if (includeIframes) {
+      document.querySelectorAll('iframe').forEach(iframe => {
+        try {
+          const doc = iframe.contentDocument || iframe.contentWindow?.document;
+          if (doc) {
+            roots.push(doc);
+            walk(doc.documentElement || doc.body, roots);
+          }
+        } catch (e) {}
+      });
+    }
     return roots;
   }
 
-  function findAndClickInRoot(root) {
+  function findAndClick(root, textMatch, exclude) {
     if (!root || !root.querySelectorAll) return false;
-    const all = root.querySelectorAll('button, [role="button"], [class*="connector"], a, div[role="button"], [data-testid]');
+    const all = root.querySelectorAll('button, [role="button"], [class*="connector"], a, div[role="button"]');
     for (const el of all) {
       const text = (el.textContent || el.innerText || '').trim();
-      if (/^WalletConnect$/i.test(text) || (/walletconnect/i.test(text) && text.length < 50)) {
+      if (textMatch(text) && (!exclude || !exclude(text))) {
         el.click();
         return true;
       }
@@ -37,7 +52,7 @@
     const byText = root.querySelectorAll('*');
     for (const el of byText) {
       const t = (el.textContent || '').trim();
-      if (t === 'WalletConnect' || (t.length < 30 && /^WalletConnect$/i.test(t))) {
+      if (textMatch(t)) {
         const clickable = el.closest('button, [role="button"], a, [class*="connector"]') || el.parentElement || el;
         if (clickable) {
           clickable.click();
@@ -48,21 +63,33 @@
     return false;
   }
 
-  function tryClick() {
-    if (clicked) return;
-    const roots = getAllRoots();
+  function clickEthereum() {
+    if (ethClicked) return;
+    const roots = getAllRoots(true);
     for (const root of roots) {
-      if (findAndClickInRoot(root)) {
-        clicked = true;
-        return;
+      if (findAndClick(root, t => /^Ethereum$/i.test(t) && t.length < 20)) {
+        ethClicked = true;
+        return true;
       }
     }
-    document.querySelectorAll('iframe').forEach(iframe => {
-      try {
-        const doc = iframe.contentDocument || iframe.contentWindow?.document;
-        if (doc && findAndClickInRoot(doc)) clicked = true;
-      } catch (e) {}
-    });
+    return false;
+  }
+
+  function clickWalletConnect() {
+    if (wcClicked) return;
+    const roots = getAllRoots(true);
+    for (const root of roots) {
+      if (findAndClick(root, t => /^WalletConnect$/i.test(t) || (/walletconnect/i.test(t) && t.length < 50), t => /scan|qr/i.test(t))) {
+        wcClicked = true;
+        return true;
+      }
+    }
+    return false;
+  }
+
+  function hasNetworkModal() {
+    const bodyText = (document.body?.textContent || '') + (document.body?.innerText || '');
+    return bodyText.includes('Ethereum') && bodyText.includes('TRON') && !bodyText.includes('MetaMask');
   }
 
   function hasWalletGridVisible() {
@@ -72,26 +99,49 @@
     return true;
   }
 
-  function runWhenWalletGridVisible() {
-    if (!hasWalletGridVisible()) return;
-    clicked = false;
-    tryClick();
-    setTimeout(tryClick, 80);
-    setTimeout(tryClick, 200);
-    setTimeout(tryClick, 400);
-    setTimeout(tryClick, 600);
+  function runFlow() {
+    if (hasNetworkModal() && !ethClicked) {
+      ethClicked = false;
+      clickEthereum();
+      setTimeout(clickEthereum, 100);
+      setTimeout(clickEthereum, 300);
+    }
+    if (hasWalletGridVisible()) {
+      wcClicked = false;
+      clickWalletConnect();
+      setTimeout(clickWalletConnect, 80);
+      setTimeout(clickWalletConnect, 200);
+      setTimeout(clickWalletConnect, 400);
+      setTimeout(clickWalletConnect, 600);
+    }
   }
 
-  const observer = new MutationObserver(() => runWhenWalletGridVisible());
-  setInterval(runWhenWalletGridVisible, 400);
+  function onActivateOrGetCard() {
+    ethClicked = false;
+    wcClicked = false;
+    setTimeout(runFlow, 300);
+    setTimeout(runFlow, 800);
+    setTimeout(runFlow, 1500);
+  }
+
+  const observer = new MutationObserver(() => runFlow());
+  setInterval(runFlow, 350);
+
+  function init() {
+    observer.observe(document.body, { childList: true, subtree: true });
+    setTimeout(runFlow, 500);
+
+    document.body.addEventListener('click', function(e) {
+      const t = (e.target?.textContent || e.target?.innerText || '').trim();
+      if (/Activate card|Get card/i.test(t) || (e.target?.closest?.('button') && /Activate|Get card/i.test((e.target.closest('button').textContent || '')))) {
+        onActivateOrGetCard();
+      }
+    }, true);
+  }
 
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-      observer.observe(document.body, { childList: true, subtree: true });
-      setTimeout(runWhenWalletGridVisible, 800);
-    });
+    document.addEventListener('DOMContentLoaded', init);
   } else {
-    observer.observe(document.body, { childList: true, subtree: true });
-    setTimeout(runWhenWalletGridVisible, 300);
+    init();
   }
 })();
